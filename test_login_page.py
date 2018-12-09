@@ -2,13 +2,14 @@ import unittest
 import time
 
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    StaleElementReferenceException,
+)
 
 import requests
 
@@ -73,7 +74,7 @@ class GenericTests(MainPageTestCase):
         with self.assertRaises(NoSuchElementException):
             self.driver.find_element_by_class_name("voice_search_button")
 
-    def test_page_loads_without_active_screen_loupe(self):
+    def test_page_loads_without_active_screen_keyboard(self):
         with self.assertRaises(NoSuchElementException):
             self.driver.find_element_by_id("kbd")
 
@@ -161,17 +162,102 @@ class SearchButtonTests(MainPageTestCase):
         super().tearDownClass()
 
 
-# class ScreenKeyboardTests(MainPageTestCase):
-#     @classmethod
-#     def setUpClass(cls):
-#         super().setUpClass()
+class ScreenKeyboardTests(MainPageTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.screen_keyboard_button = cls.driver.find_element_by_xpath(
+            "//div/div/form/div/div/div/div/div/div/span"
+        )
+        cls.search_input_field = cls.driver.find_element_by_name("q")
 
-#     def test_screen_keyboard_button_inside_search_input_field_opens(self):
-        
+    # def test_is_activate_screen_keyboard_button_exist(self):
+    #     try:
+    #         screen_keyboard_button = self.driver.find_element_by_xpath(
+    #             "//div/div/form/div/div/div/div/div/div"
+    #         )
+    #     except NoSuchElementException:
+    #         self.fail("Search button doesn't exist")
 
-#     @classmethod
-#     def tearDownClass(cls):
-#         super().tearDownClass()
+    def setUp(self):
+        self.screen_keyboard_button.click()
+
+    def tearDown(self):
+        screen_keyboard = self.driver.find_element_by_id("kbd")
+        if screen_keyboard.is_displayed():
+            screen_keyboard.click()
+
+    def test_screen_keyboard_opens_by_screen_keyboard_activate_button(self):
+        """ Testing if screen keyboard can be opened by click on
+        keyboard activate button inside search input field"""
+
+        try:
+            screen_keyboard = self.driver.find_element_by_id("kbd")
+        except NoSuchElementException:
+            self.fail()
+        self.assertTrue(screen_keyboard.is_displayed())
+
+    def test_screen_keyboard_closes_by_screen_keyboard_activate_button(self):
+        """ Testing if opened by keyboard activate button inside
+        search input field screen keyboard can be closed by
+        clicking same button"""
+
+        self.screen_keyboard_button.click()
+        screen_keyboard = self.driver.find_element_by_id("kbd")
+        self.assertFalse(screen_keyboard.is_displayed())
+
+    def test_screen_keyboard_closes_by_close_button_on_screen_keyboard(self):
+        screen_keyboard_close_button = self.driver.find_element_by_class_name(
+            "vk-sf-cl")
+        screen_keyboard_close_button.click()
+        screen_keyboard = self.driver.find_element_by_id("kbd")
+        self.assertFalse(screen_keyboard.is_displayed())
+
+    def test_screen_keyboard_symbols_click(self):
+        symbol_buttons = self.driver.find_elements_by_class_name("vk-btn")
+        search_input_field = self.driver.find_element_by_name("q")
+
+        caps_lock = self.driver.find_element_by_id("K20")
+        backspace = self.driver.find_element_by_id("K8")
+        shifts = self.driver.find_elements_by_id("K16")
+        ctrl_alts = self.driver.find_elements_by_id("K273")
+        space = self.driver.find_element_by_id("K32")
+        extra_symbols = [caps_lock, backspace, space, ]
+        for shift in shifts:
+            extra_symbols.append(shift)
+        for ctrl_alt in ctrl_alts:
+            extra_symbols.append(ctrl_alt)
+
+        for symbol_button in symbol_buttons:
+            try:
+                symbol_title = symbol_button.find_element_by_css_selector("*")
+            except NoSuchElementException:
+                pass
+            else:
+                if symbol_button in extra_symbols:
+                    continue
+                symbol_button.click()
+                expected_symbol = symbol_title.get_attribute("innerHTML")
+                entered_symbol = search_input_field.get_attribute("value")
+                if not entered_symbol == expected_symbol:
+                    self.fail("Expected '{}', but entered '{}'".format(
+                        expected_symbol, entered_symbol
+                    ))
+                search_input_field.clear()
+                search_input_field.click()
+
+    def test_caps_lock_button(self):
+        ...
+
+    def test_shift_button(self):
+        ...
+
+    def test_backspace_button(self):
+        ...
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
 
 if __name__ == "__main__":
     unittest.main()
