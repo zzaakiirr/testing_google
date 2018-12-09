@@ -1,5 +1,4 @@
 import unittest
-import time
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -10,8 +9,6 @@ from selenium.common.exceptions import (
     NoSuchElementException,
     StaleElementReferenceException,
 )
-
-import requests
 
 
 class MainPageTestCase(unittest.TestCase):
@@ -34,10 +31,6 @@ class GenericTests(MainPageTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-
-    def test_does_url_reach_return_success_status_code(self):
-        response = requests.get(self.start_url)
-        self.assertEqual(response.status_code, 200)
 
     def test_is_page_title_correct(self):
         expected_title = 'Google'
@@ -169,6 +162,27 @@ class SearchButtonTests(MainPageTestCase):
         super().tearDownClass()
 
 
+def is_symbol_button_click_put_symbol_to_search_input(
+        search_input_field, symbol_button, extra_symbols):
+    try:
+        symbol = symbol_button.find_element_by_css_selector("*")
+    except NoSuchElementException:
+        pass
+    else:
+        if symbol_button in extra_symbols:
+            return True, None
+        symbol_button.click()
+        expected_symbol = symbol.get_attribute("innerHTML")
+        entered_symbol = search_input_field.get_attribute("value")
+        if not entered_symbol == expected_symbol:
+            return False, "Expected '{}', but entered '{}'".format(
+                expected_symbol, entered_symbol
+            )
+        search_input_field.clear()
+        search_input_field.click()
+    return True, None
+
+
 class ScreenKeyboardTests(MainPageTestCase):
     @classmethod
     def setUpClass(cls):
@@ -224,31 +238,26 @@ class ScreenKeyboardTests(MainPageTestCase):
         screen_keyboard = self.driver.find_element_by_id("kbd")
         self.assertFalse(screen_keyboard.is_displayed())
 
-    def test_screen_keyboard_symbols_click(self):
-        symbol_buttons = self.driver.find_elements_by_class_name("vk-btn")
+    def get_extra_symbols(self):
         extra_symbols = [self.caps_lock, self.backspace, self.space, ]
         for shift in self.shifts:
             extra_symbols.append(shift)
         for ctrl_alt in self.ctrl_alts:
             extra_symbols.append(ctrl_alt)
 
+        return extra_symbols
+
+    def test_screen_keyboard_symbols_click(self):
+        symbol_buttons = self.driver.find_elements_by_class_name("vk-btn")
+        extra_symbols = self.get_extra_symbols()
+
         for symbol_button in symbol_buttons:
-            try:
-                symbol_title = symbol_button.find_element_by_css_selector("*")
-            except NoSuchElementException:
-                pass
-            else:
-                if symbol_button in extra_symbols:
-                    continue
-                symbol_button.click()
-                expected_symbol = symbol_title.get_attribute("innerHTML")
-                entered_symbol = self.search_input_field.get_attribute("value")
-                if not entered_symbol == expected_symbol:
-                    self.fail("Expected '{}', but entered '{}'".format(
-                        expected_symbol, entered_symbol
-                    ))
-                self.search_input_field.clear()
-                self.search_input_field.click()
+            no_error, error_message = (
+                is_symbol_button_click_put_symbol_to_search_input(
+                    self.search_input_field, symbol_button, extra_symbols,
+                ))
+            if not no_error:
+                self.fail(error_message)
 
     def test_screen_keyboard_caps_lock_button(self):
         self.caps_lock.click()
