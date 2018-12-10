@@ -1,7 +1,5 @@
-Auto tests for "https://www.google.com" main page.
-Used Python and Selenium.
-For correct work you should install geckodriver (See: https://selenium-python.readthedocs.io/installation.html)
+Auto tests for Google main("https://www.google.com") page on Firefox browser.
+For correct work you should install modules from "requirements.txt" and geckodriver (See: https://selenium-python.readthedocs.io/installation.html)
 
-Автотесты для главной страницы "https://www.google.com".
-Использован Python и Selenium.
-Для корректной работы, должен быть установлен geckodriver (Подробнее: https://selenium-python.readthedocs.io/installation.html)
+Автотесты для главной страницы Google("https://www.google.com") на браузере Firefox.
+Для корректной работы, должны быть установлены модули из "requirements.txt" и geckodriver (Подробнее: https://selenium-python.readthedocs.io/installation.html)
