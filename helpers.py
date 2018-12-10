@@ -17,13 +17,19 @@ def is_results_page_loads(driver, timeout=10):
 
 
 def scroll_to_the_page_bottom(driver):
-    driver.execute_script(
-        "window.scrollTo(0, document.body.scrollHeight);"
-    )
+    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     time.sleep(1)
 
 
-def is_symbol_button_click_put_symbol_to_search_input(
+def get_screen_keyboard(driver):
+    try:
+        screen_keyboard = driver.find_element_by_id("kbd")
+    except NoSuchElementException:
+        return None
+    return screen_keyboard
+
+
+def is_symbol_button_click_puts_symbol_to_search_input(
         search_input_field, symbol_button, extra_symbols):
     try:
         symbol = symbol_button.find_element_by_css_selector("*")
