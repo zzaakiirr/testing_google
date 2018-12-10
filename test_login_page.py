@@ -1,4 +1,7 @@
 import unittest
+import time
+
+import requests
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -8,6 +11,14 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import (
     NoSuchElementException,
     StaleElementReferenceException,
+    TimeoutException,
+)
+from selenium.webdriver.common.action_chains import ActionChains
+
+from screen_keyboard_tests_helpers import (
+    is_symbol_button_click_put_symbol_to_search_input,
+    scroll_to_the_page_bottom,
+    is_results_page_loads,
 )
 
 
@@ -26,51 +37,13 @@ class MainPageTestCase(unittest.TestCase):
 
 
 class GenericTests(MainPageTestCase):
-    """ Generic tests for checking if page loads with correct elements"""
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.expected_title = 'Google'
 
     def test_is_page_title_correct(self):
-        expected_title = 'Google'
-        self.assertEqual(expected_title, self.driver.title)
-
-    def test_is_search_input_field_exist(self):
-        try:
-            search_input_field = self.driver.find_element_by_name("q")
-        except NoSuchElementException:
-            self.fail("Search input field doesn't exist")
-
-    def test_is_logo_exist(self):
-        try:
-            logo = self.driver.find_element_by_id("hplogo")
-        except NoSuchElementException:
-            self.fail("Logo doesn't exist")
-
-    def test_is_search_button_exist(self):
-        try:
-            search_button = self.driver.find_element_by_name("btnK")
-        except NoSuchElementException:
-            self.fail("Search button doesn't exist")
-
-    def test_is_i_am_lucky_button_exist(self):
-        try:
-            i_am_lucky_button = self.driver.find_element_by_name("btnI")
-        except NoSuchElementException:
-            self.fail("I am lucky button doesn't exist")
-
-    def test_does_not_voice_search_button_exist(self):
-        with self.assertRaises(NoSuchElementException):
-            self.driver.find_element_by_class_name("voice_search_button")
-
-    def test_page_loads_without_active_screen_keyboard(self):
-        with self.assertRaises(NoSuchElementException):
-            self.driver.find_element_by_id("kbd")
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
+        self.assertEqual(self.expected_title, self.driver.title)
 
 
 class SearchInputFieldTests(MainPageTestCase):
@@ -79,61 +52,42 @@ class SearchInputFieldTests(MainPageTestCase):
         super().setUpClass()
 
     def setUp(self):
-        self.driver.back()
-        ignored_exceptions = (
-            NoSuchElementException,
-            StaleElementReferenceException,
-        )
-        wait = WebDriverWait(
-            self.driver, 10, ignored_exceptions=ignored_exceptions,
-        )
-        self.search_input_field = wait.until(
+        self.search_input_field = WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located((By.NAME, "q"))
         )
 
-    # maybe the same test later:
     def test_empty_search_input_field_can_not_be_submited_by_return_key(self):
         self.search_input_field.send_keys(Keys.RETURN)
-        with self.assertRaises(NoSuchElementException):
-            self.driver.find_element_by_id("resultStats")
-        self.assertEqual(self.driver.current_url, self.start_url)
+        self.assertFalse(is_results_page_loads(self.driver))
 
     def test_filled_search_input_field_submit_by_return_key(self):
         self.search_input_field.send_keys("Kaspersky", Keys.RETURN)
-        WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located((By.ID, "resultStats"))
-        )
-        self.assertNotEqual(self.driver.current_url, self.start_url)
+        self.assertTrue(is_results_page_loads(self.driver))
 
     # TO DO:
     def test_search_input_field_saves_logged_user_search_history(self):
         ...
+
+    def tearDown(self):
+        self.driver.back()
 
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
 
 
-# Don't work:
-# class IamLuckyButtonTests(MainPageTestCase):
-#     @classmethod
-#     def setUpClass(cls):
-#         super().setUpClass()
+class IamLuckyButtonTests(MainPageTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
 
-#     def test_i_am_lucky_button_redirect(self):
-#         i_am_lucky_button = WebDriverWait(self.driver, 10).until(
-#             EC.element_to_be_clickable((By.NAME, "btnI"))
-#         )
-#         i_am_lucky_button.click()
-#         WebDriverWait(self.driver, 10).until(
-#             EC.presence_of_element_located((By.CLASS_NAME, "latest-doodle"))
-#         )
-#         expected_url = "https://www.google.com/doodles/"
-#         self.assertEqual(expected_url, self.driver.current_url)
+    # TO DO:
+    def test_i_am_lucky_button_redirect(self):
+        ...
 
-#     @classmethod
-#     def tearDownClass(cls):
-#         super().tearDownClass()
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
 
 
 class SearchButtonTests(MainPageTestCase):
@@ -145,42 +99,20 @@ class SearchButtonTests(MainPageTestCase):
 
     def test_filled_search_input_field_submit_by_search_button(self):
         self.search_input_field.send_keys("Kaspersky")
+        scroll_to_the_page_bottom(self.driver)
         self.search_button.click()
-        WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located((By.ID, "resultStats"))
-        )
-        self.assertNotEqual(self.driver.current_url, self.start_url)
+        self.assertTrue(is_results_page_loads(self.driver))
 
+    # TO DO:
     def test_empty_search_input_field_cant_be_submited_by_search_button(self):
-        self.search_input_field.send_keys(Keys.RETURN)
-        with self.assertRaises(NoSuchElementException):
-            self.driver.find_element_by_id("resultStats")
-        self.assertEqual(self.driver.current_url, self.start_url)
+        ...
+
+    def tearDown(self):
+        self.driver.back()
 
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
-
-
-def is_symbol_button_click_put_symbol_to_search_input(
-        search_input_field, symbol_button, extra_symbols):
-    try:
-        symbol = symbol_button.find_element_by_css_selector("*")
-    except NoSuchElementException:
-        pass
-    else:
-        if symbol_button in extra_symbols:
-            return True, None
-        symbol_button.click()
-        expected_symbol = symbol.get_attribute("innerHTML")
-        entered_symbol = search_input_field.get_attribute("value")
-        if not entered_symbol == expected_symbol:
-            return False, "Expected '{}', but entered '{}'".format(
-                expected_symbol, entered_symbol
-            )
-        search_input_field.clear()
-        search_input_field.click()
-    return True, None
 
 
 class ScreenKeyboardTests(MainPageTestCase):
@@ -192,30 +124,25 @@ class ScreenKeyboardTests(MainPageTestCase):
         )
         cls.search_input_field = cls.driver.find_element_by_name("q")
 
-        cls.screen_keyboard_button.click()
-        cls.caps_lock = cls.driver.find_element_by_id("K20")
-        cls.backspace = cls.driver.find_element_by_id("K8")
-        cls.shifts = cls.driver.find_elements_by_id("K16")
-        cls.ctrl_alts = cls.driver.find_elements_by_id("K273")
-        cls.space = cls.driver.find_element_by_id("K32")
-        cls.screen_keyboard_button.click()
+        # Need to FIX:
+        # cls.caps_lock = cls.driver.find_element_by_id("K20")
+        # cls.backspace = cls.driver.find_element_by_id("K8")
+        # cls.shifts = cls.driver.find_elements_by_id("K16")
+        # cls.ctrl_alts = cls.driver.find_elements_by_id("K273")
+        # cls.space = cls.driver.find_element_by_id("K32")
 
-    def setUp(self):
-        self.screen_keyboard_button.click()
-        self.russian_e_button = self.driver.find_element_by_id("K192")
+    def test_page_loads_without_active_screen_keyboard(self):
+        with self.assertRaises(NoSuchElementException):
+            self.driver.find_element_by_id("kbd")
 
-    def test_is_activate_screen_keyboard_button_exist(self):
-        try:
-            screen_keyboard_button = self.driver.find_element_by_xpath(
-                "//div/div/form/div/div/div/div/div/div/span"
-            )
-        except NoSuchElementException:
-            self.fail("Search button doesn't exist")
+    # def setUp(self):
+    #     self.russian_e_button = self.driver.find_element_by_id("K192")
 
     def test_screen_keyboard_opens_by_screen_keyboard_activate_button(self):
         """ Testing if screen keyboard can be opened by click on
         keyboard activate button inside search input field"""
 
+        self.screen_keyboard_button.click()
         try:
             screen_keyboard = self.driver.find_element_by_id("kbd")
         except NoSuchElementException:
@@ -227,6 +154,7 @@ class ScreenKeyboardTests(MainPageTestCase):
         search input field screen keyboard can be closed by
         clicking same button"""
 
+        self.screen_keyboard_button.click()
         self.screen_keyboard_button.click()
         screen_keyboard = self.driver.find_element_by_id("kbd")
         self.assertFalse(screen_keyboard.is_displayed())
